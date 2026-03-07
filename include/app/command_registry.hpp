@@ -17,7 +17,7 @@ enum class FeatureGroup : std::uint8_t {
     CoreKV,     // GET/SET/DEL/SIZE
     Numeric,    // INCR/INCRBY/INCRBYFLOAT
     Ttl,        // PEXPIRE/PTTL
-    Admin       // INFO/STATS/COMMANDS (потом)
+    Admin       // INFO/STATS/COMMANDS
 };
 
 

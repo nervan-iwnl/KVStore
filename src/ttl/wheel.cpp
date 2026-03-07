@@ -3,6 +3,7 @@
 #include "util/utils.hpp"
 #include <stdexcept>
 #include <limits>
+#include <iterator>
 
 HierTtlWheel::HierTtlWheel(Config cfg) {
     tick_ms_ = cfg.tick_ms;
@@ -62,7 +63,17 @@ void HierTtlWheel::tick_once(int64_t now_ms, std::vector<TimerItem>& out_due) {
         if (i == wheels_.size()) break;
         cascade_from_level(i, now_ms);
     }
-    out_due = std::move(lvl0);
+    std::move(lvl0.begin(), lvl0.end(), std::back_inserter(out_due));
+    lvl0.clear();
+}
+
+void HierTtlWheel::tick_n(size_t steps, int64_t first_tick_ms, std::vector<TimerItem>& out_due) {
+    out_due.clear();
+
+    const auto tick = tick_ms_;
+    for (size_t s = 0; s < steps; ++s) {
+        tick_once(first_tick_ms + static_cast<int64_t>(s) * tick, out_due);
+    }
 }
 
 void HierTtlWheel::schedule(TimerItem item, int64_t now_ms) {

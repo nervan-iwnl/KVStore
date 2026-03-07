@@ -10,8 +10,8 @@ TtlCleaner::TtlCleaner(ITtlTarget& target, HierTtlWheel::Config wheel_cfg)
 
 void TtlCleaner::run() {
     std::unique_lock<std::mutex> lk(mu_);
-    auto tick = wheel_.tick_ms();
-    auto next = now_ms() + tick;
+    const int64_t tick = wheel_.tick_ms();
+    int64_t next = now_ms() + tick;
     std::vector<TimerItem> due;
     while (!stop_flag_.load()) {
         int64_t now = now_ms();
@@ -21,23 +21,22 @@ void TtlCleaner::run() {
         now = now_ms();
         if (now < next) continue;
 
+        const size_t steps = static_cast<size_t>((now - next) / tick + 1);
+
         due.clear();
-        wheel_.tick_once(now, due);
-        next += tick;
+        wheel_.tick_n(steps, next, due);
+        next += static_cast<int64_t>(steps) * tick;
+
         lk.unlock();
         std::vector<TimerItem> backWheel;
+        backWheel.reserve(due.size());
         for (auto &it : due) {
             if (it.expire_at_ms <= now) target_.erase_expired_if_match(it.key, it.expire_at_ms, it.gen, now);
             else backWheel.push_back(std::move(it));
         }
-        lk.lock();
+        lk.lock();  
 
-        for (auto &it : backWheel)  wheel_.schedule(std::move(it), now);
-                now = now_ms();
-        if (now >= next) {
-            int64_t steps = (now - next) / tick + 1;
-            next += steps * tick;
-        }
+        for (auto &it : backWheel) wheel_.schedule(std::move(it), now);
     }
 }
 

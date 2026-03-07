@@ -18,6 +18,7 @@ public:
     void schedule(TimerItem item, int64_t now_ms);
 
     void tick_once(int64_t now_ms, std::vector<TimerItem>& out_due);
+    void tick_n(size_t steps, int64_t first_tick_ms, std::vector<TimerItem>& out_due);
 
 private:
     // cfg

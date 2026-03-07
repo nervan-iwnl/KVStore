@@ -1,11 +1,10 @@
 #include <mutex>
 #include <unordered_map>
 #include <shared_mutex>
+#include <sstream>
 
 #include "util/utils.hpp"
 #include "domain/kv_store.hpp"
-
-
 
 struct KVStore::Impl {
     struct Entry {
@@ -46,8 +45,11 @@ std::optional<T> KVStore::Impl::incr_any(const std::string& key, T delta) {
         if (it != map_.end()) map_.erase(it);
         it = map_.emplace(key, Entry{}).first;
     }
-    res += delta;
-    it->second.value = std::to_string(res);
+    if (std::numeric_limits<T>::max() - delta >= res) res += delta;
+    else return res;
+    std::ostringstream oss;
+    oss << res;
+    it->second.value = oss.str();
     return res;
 }
 
@@ -134,8 +136,8 @@ PexpireResult KVStore::pexpire(const std::string& key, int64_t ttl_ms) {
         return res;
     }
     if (p_->is_expired(it->second, now) || ttl_ms <= 0) {
+        p_->map_.erase(it);
         if (ttl_ms <= 0) {
-            p_->map_.erase(it);
             res.state = PexpireResult::State::DeletedImmediately;
         } else {
             res.state = PexpireResult::State::NoKey;
