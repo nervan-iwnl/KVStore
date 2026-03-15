@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package kvd.api.v1;
+
+import "kvd/options.proto";
+
+service Numeric {
+  option (kvd.options.service_id) = 2;
+
+  rpc Incr(NumericKeyRequest) returns (NumericValueResponse) {
+    option (kvd.options.method_id) = 1;
+  }
+
+  rpc Decr(NumericKeyRequest) returns (NumericValueResponse) {
+    option (kvd.options.method_id) = 2;
+  }
+
+  rpc IncrBy(NumericDeltaRequest) returns (NumericValueResponse) {
+    option (kvd.options.method_id) = 3;
+  }
+
+  rpc DecrBy(NumericDeltaRequest) returns (NumericValueResponse) {
+    option (kvd.options.method_id) = 4;
+  }
+}
+
+enum NumericKind {
+  NUMERIC_KIND_UNSPECIFIED = 0;
+  NUMERIC_KIND_INT = 1;
+  NUMERIC_KIND_FLOAT = 2;
+}
+
+message NumericKeyRequest {
+  string key = 1;
+  NumericKind kind = 2;
+}
+
+message NumericDeltaRequest {
+  string key = 1;
+
+  oneof delta {
+    sint64 int_delta = 2;
+    double float_delta = 3;
+  }
+}
+
+message NumericValueResponse {
+  oneof value {
+    sint64 int_value = 1;
+    double float_value = 2;
+  }
+}

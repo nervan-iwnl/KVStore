@@ -5,3 +5,10 @@ TODO.md
 .vscode
 
 *.zip
+
+**/__pycache__/
+**/.venv/
+**/venv/
+**/.gen_py/
+
+tools/protoc-gen-kvd/kvd/

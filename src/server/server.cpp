@@ -6,12 +6,14 @@
 
 #include "server/server.hpp"
 #include "server/session.hpp"
+#include "kvd/api/v1/kv.dispatch.gen.hpp"
 
 
-Server::Server(AppContext& ctx, Config cfg) 
-: ctx_(ctx), cfg_(cfg) 
-{}
-
+Server::Server(AppContext& ctx,
+               const kvd::transport::Dispatcher& dispatcher,
+               Config cfg)
+    : ctx_(ctx), dispatcher_(dispatcher), cfg_(cfg) {}
+    
 
 int Server::make_listen_socket() const {
     int sfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -94,7 +96,7 @@ void Server::client_worker(int cfd) {
         }
     } guard{cfd, active_conns_};
 
-    handle_client_session(cfd, ctx_);
+    handle_client_session(cfd, dispatcher_, ctx_);
 }
 
 

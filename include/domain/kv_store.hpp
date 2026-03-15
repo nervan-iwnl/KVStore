@@ -28,7 +28,9 @@ public:
     std::optional<double> incrbyfloat(const std::string& key, double delta);
 
     PexpireResult pexpire(const std::string& key, int64_t ttl_ms);
+    PexpireResult pexpireat(const std::string& key, int64_t expire_at_ms);
     PttlResult pttl(const std::string& key);
+    PersistResult persist(const std::string& key);
 
     size_t size() const;
 

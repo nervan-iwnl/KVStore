@@ -1,14 +1,10 @@
 #pragma once
 
 #include "app/context.hpp"
+#include "transport/dispatcher.hpp"
 
-#include <string>
-
-
-struct Conn {
-    int fd;
-    std::string inbuf;
-    std::string outbuf;
-};
-
-void handle_client_session(int fd, AppContext& ctx);
+void handle_client_session(
+    int fd,
+    const kvd::transport::Dispatcher& dispatcher,
+    AppContext& app
+);

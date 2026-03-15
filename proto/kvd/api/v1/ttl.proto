@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package kvd.api.v1;
+
+import "kvd/options.proto";
+
+service Ttl {
+  option (kvd.options.service_id) = 3;
+
+  rpc PExpire(PExpireRequest) returns (PExpireResponse) {
+    option (kvd.options.method_id) = 1;
+  }
+
+  rpc PTtl(TtlKeyRequest) returns (PTtlResponse) {
+    option (kvd.options.method_id) = 2;
+  }
+
+  rpc Persist(TtlKeyRequest) returns (PersistResponse) {
+    option (kvd.options.method_id) = 3;
+  }
+
+  rpc PExpireAt(PExpireAtRequest) returns (PExpireResponse) {
+    option (kvd.options.method_id) = 4;
+  }
+}
+
+message TtlKeyRequest {
+  string key = 1;
+}
+
+message PExpireRequest {
+  string key = 1;
+  sint64 ttl_ms = 2;
+}
+
+message PExpireAtRequest {
+  string key = 1;
+  sint64 expire_at_ms = 2;
+}
+
+enum PExpireState {
+  PEXPIRE_STATE_UNSPECIFIED = 0;
+  PEXPIRE_STATE_NO_KEY = 1;
+  PEXPIRE_STATE_SCHEDULED = 2;
+  PEXPIRE_STATE_DELETED_IMMEDIATELY = 3;
+}
+
+message PExpireResponse {
+  PExpireState state = 1;
+  sint64 expire_at_ms = 2;
+}
+
+enum PTtlState {
+  PTTL_STATE_UNSPECIFIED = 0;
+  PTTL_STATE_NO_KEY = 1;
+  PTTL_STATE_NO_EXPIRE = 2;
+  PTTL_STATE_HAS_EXPIRE = 3;
+}
+
+message PTtlResponse {
+  PTtlState state = 1;
+  sint64 remaining_ms = 2;
+}
+
+enum PersistState {
+  PERSIST_STATE_UNSPECIFIED = 0;
+  PERSIST_STATE_NO_KEY = 1;
+  PERSIST_STATE_NO_EXPIRE = 2;
+  PERSIST_STATE_PERSISTED = 3;
+}
+
+message PersistResponse {
+  PersistState state = 1;
+}

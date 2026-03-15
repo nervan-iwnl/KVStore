@@ -1,0 +1,31 @@
+syntax = "proto3";
+package kvd.api.v1;
+
+message ProtoError {
+  enum Code {
+    CODE_UNSPECIFIED = 0;
+    BAD_REQUEST = 1;
+    NOT_FOUND = 2;
+    INTERNAL = 3;
+    UNKNOWN_METHOD = 4;
+  }
+
+  Code code = 1;
+  string message = 2;
+}
+
+message RequestFrame {
+  uint32 protocol_version = 1;
+  uint32 service_id = 2;
+  uint32 method_id = 3;
+  uint64 request_id = 4;
+  bytes payload = 5;
+}
+
+message ResponseFrame {
+  uint32 protocol_version = 1;
+  uint64 request_id = 2;
+  bool ok = 3;
+  bytes payload = 4;
+  ProtoError error = 5;
+}
