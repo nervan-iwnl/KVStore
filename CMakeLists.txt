@@ -146,6 +146,7 @@ add_library(app_core STATIC
     src/domain/kv_store.cpp
     src/ttl/cleaner.cpp
     src/ttl/wheel.cpp
+    src/util/time.cpp
     src/util/utils.cpp
 )
 

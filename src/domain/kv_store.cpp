@@ -3,7 +3,10 @@
 #include <shared_mutex>
 #include <sstream>
 #include <cmath>
+#include <limits>
+#include <type_traits>
 
+#include "util/time.hpp"
 #include "util/utils.hpp"
 #include "domain/kv_store.hpp"
 
@@ -50,6 +53,7 @@ bool KVStore::Impl::checked_add(T lhs, T rhs, T& out) {
         out = lhs + rhs;
         return std::isfinite(out);
     }
+    return false;
 }
 
 
@@ -67,7 +71,7 @@ template<class T>
 std::optional<T> KVStore::Impl::incr_any(const std::string& key, T delta) {
     T res = 0;
     auto it = map_.find(key);
-    auto now = now_ms();
+    auto now = kvd::util::unix_now_ms();
     if (it != map_.end() && !is_expired(it->second, now)) {
         if (!parse_strict(it->second.value, res)) return std::nullopt;
     } else  {
@@ -108,7 +112,7 @@ PexpireResult KVStore::Impl::apply_expire_at_locked(
         return res;
     }
 
-    if (!is_expired(it->second, now_ms)) {
+    if (is_expired(it->second, now_ms)) {
         map_.erase(it);
         res.state = PexpireResult::State::NoKey;
         return res;
@@ -149,7 +153,7 @@ void KVStore::set(std::string key, std::string value) {
 
 std::optional<std::string> KVStore::get(const std::string& key) {
     std::shared_lock<std::shared_mutex> lk(p_->mu_);
-    auto now = now_ms();
+    auto now = kvd::util::unix_now_ms();
     auto it = p_->map_.find(key);
     if (it != p_->map_.end()) {
         if (!p_->is_expired(it->second, now)) return it->second.value;
@@ -170,7 +174,7 @@ bool KVStore::del(const std::string& key) {
     std::unique_lock<std::shared_mutex> lk(p_->mu_);
     auto it = p_->map_.find(key);
     if (it == p_->map_.end()) return false;
-    auto now = now_ms();
+    auto now = kvd::util::unix_now_ms();
     bool is_exp = p_->is_expired(it->second, now);
     p_->map_.erase(it);
     return !is_exp;
@@ -194,7 +198,7 @@ std::optional<double> KVStore::incrbyfloat(const std::string& key, double delta)
 
 
 PexpireResult KVStore::pexpire(const std::string& key, int64_t ttl_ms) {
-    int64_t now = now_ms();
+    int64_t now = kvd::util::unix_now_ms();
     std::unique_lock<std::shared_mutex> lk(p_->mu_); 
     PexpireResult res = {};
     
@@ -213,13 +217,13 @@ PexpireResult KVStore::pexpire(const std::string& key, int64_t ttl_ms) {
 }
 
 PexpireResult KVStore::pexpireat(const std::string& key, int64_t expire_at_ms) {
-    const int64_t now = now_ms();
+    const int64_t now = kvd::util::unix_now_ms();
     std::unique_lock<std::shared_mutex> lk(p_->mu_);
     return p_->apply_expire_at_locked(key, expire_at_ms, now, next_timer_gen_);
 }
 
 PttlResult KVStore::pttl(const std::string& key) {
-    int64_t now = now_ms();
+    int64_t now = kvd::util::unix_now_ms();
     std::shared_lock<std::shared_mutex> lk(p_->mu_);
     auto it = p_->map_.find(key);
     PttlResult res = {};
@@ -240,7 +244,7 @@ PttlResult KVStore::pttl(const std::string& key) {
 }
 
 PersistResult KVStore::persist(const std::string& key) {
-    const uint64_t now = now_ms();
+    const uint64_t now = kvd::util::unix_now_ms();
     std::unique_lock<std::shared_mutex> lk(p_->mu_);
 
     PersistResult res{};
@@ -257,6 +261,7 @@ PersistResult KVStore::persist(const std::string& key) {
 
     if (!it->second.has_expire) {
         res.state = PersistResult::State::NoExpire;
+        return res;
     }
 
     it->second.has_expire = false;

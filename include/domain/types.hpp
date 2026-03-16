@@ -18,7 +18,7 @@ struct PexpireResult {
         InvalidTtl,
         DeletedImmediately,
         Scheduled
-    }  state = State::Scheduled;
+    }  state = State::NoKey;
     int64_t expire_at_ms = 0;
     uint64_t gen = 0;
 };

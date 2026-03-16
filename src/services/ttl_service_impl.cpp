@@ -110,7 +110,7 @@ kvd::runtime::Status TtlServiceImpl::Persist(
             resp.set_state(::kvd::api::v1::PERSIST_STATE_NO_KEY);
             return kvd::runtime::ok();
         case PersistResult::State::NoExpire:
-            resp.set_state(::kvd::api::v1::PERSIST_STATE_NO_KEY);
+            resp.set_state(::kvd::api::v1::PERSIST_STATE_NO_EXPIRE);
             return kvd::runtime::ok();
         case PersistResult::State::Persisted:
             resp.set_state(::kvd::api::v1::PERSIST_STATE_PERSISTED);

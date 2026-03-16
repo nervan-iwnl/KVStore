@@ -21,10 +21,6 @@ bool parse_strict(const std::string& s, double &out) {
     }
 }
 
-int64_t now_ms() {
-    auto ts = std::chrono::steady_clock::now();
-    return std::chrono::duration_cast<std::chrono::milliseconds>(ts.time_since_epoch()).count();
-}
 
 bool is_pow2(uint32_t x) {
     return x && ((x & (x - 1)) == 0);
