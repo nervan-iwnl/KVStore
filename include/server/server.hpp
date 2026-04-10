@@ -3,19 +3,26 @@
 #include <atomic>
 
 #include "app/context.hpp"
+#include "config/app_config.hpp"
 #include "transport/dispatcher.hpp"
 
 class Server {
 public:
-    struct Config {
-        int port = 7777;
-        int listen_backlog = 64;
-        int max_connections = 256;
-    };
+    using Config = kvd::config::ListenerConfig;
 
     Server(AppContext& ctx,
            const kvd::transport::Dispatcher& dispatcher,
            Config cfg);
+
+    Server(AppContext& ctx,
+           const kvd::transport::Dispatcher& dispatcher,
+           const kvd::config::AppConfig& app_cfg)
+        : Server(ctx, dispatcher, app_cfg.listener()) {}
+
+    Server(AppContext& ctx,
+           const kvd::transport::Dispatcher& dispatcher,
+           const kvd::config::AppConfigSpec& spec)
+        : Server(ctx, dispatcher, spec.listener) {}
 
     void run();
 

@@ -1,19 +1,20 @@
-#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
+
 #include <iostream>
 #include <thread>
+#include <utility>
 
 #include "server/server.hpp"
 #include "server/session.hpp"
 #include "kvd/api/v1/kv.dispatch.gen.hpp"
 
-
 Server::Server(AppContext& ctx,
                const kvd::transport::Dispatcher& dispatcher,
                Config cfg)
-    : ctx_(ctx), dispatcher_(dispatcher), cfg_(cfg) {}
-    
+    : ctx_(ctx), dispatcher_(dispatcher), cfg_(std::move(cfg)) {}
 
 int Server::make_listen_socket() const {
     int sfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -28,10 +29,16 @@ int Server::make_listen_socket() const {
         close(sfd);
         return -1;
     }
+
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
     addr.sin_port = htons(cfg_.port);
+
+    if (inet_pton(AF_INET, cfg_.bind_address.c_str(), &addr.sin_addr) != 1) {
+        std::cerr << "invalid bind address: " << cfg_.bind_address << "\n";
+        close(sfd);
+        return -1;
+    }
 
     if (bind(sfd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
         std::cerr << "bind() failed\n";
@@ -44,10 +51,9 @@ int Server::make_listen_socket() const {
         return -1;
     }
 
-    std::cout << "Listening on " << cfg_.port << "\n";
+    std::cout << "Listening on " << cfg_.bind_address << ':' << cfg_.port << "\n";
     return sfd;
 }
-
 
 void Server::accept_loop(int sfd) {
     sockaddr_in caddr{};
@@ -72,7 +78,6 @@ void Server::accept_loop(int sfd) {
     }
 }
 
-
 void Server::spawn_client(int cfd) {
     try {
         std::thread([this, cfd]() {
@@ -90,15 +95,14 @@ void Server::client_worker(int cfd) {
         int fd;
         std::atomic<int>& active;
         ~Guard() {
-            if (fd >= 0) close(fd); 
+            if (fd >= 0) close(fd);
             active.fetch_sub(1, std::memory_order_relaxed);
-            std::cout << "Client disconnected\n"; 
+            std::cout << "Client disconnected\n";
         }
     } guard{cfd, active_conns_};
 
     handle_client_session(cfd, dispatcher_, ctx_);
 }
-
 
 void Server::run() {
     int sfd = make_listen_socket();
@@ -111,4 +115,3 @@ void Server::run() {
 
     accept_loop(sfd);
 }
-

@@ -1,6 +1,9 @@
 #include <csignal>
+#include <exception>
+#include <iostream>
 
 #include "app/context.hpp"
+#include "config/config.hpp"
 #include "domain/kv_store.hpp"
 #include "server/server.hpp"
 #include "transport/dispatcher.hpp"
@@ -17,38 +20,40 @@
 int main() {
     std::signal(SIGPIPE, SIG_IGN);
 
-    KVStore store;
-    TtlCleaner cleaner(store, {10, {1024, 1024, 1024}});
-
-    AppConfig cfg;
-    AppContext app{store, cleaner, cfg};
-
-    kvd::transport::Dispatcher dispatcher;
-
-    services::KvServiceImpl kv_service;
-    kvd::gen::RegisterKvService(dispatcher, kv_service);
-
-    services::NumericImpl numeric_service;
-    kvd::gen::RegisterNumericService(dispatcher, numeric_service);
-    
-    services::TtlServiceImpl ttl_service;
-    kvd::gen::RegisterTtlService(dispatcher, ttl_service);
-
-    Server::Config scfg;
-    scfg.port = 7777; // или другое значение
-    scfg.listen_backlog = 64;
-    scfg.max_connections = 256;
-
-    cleaner.start();
-
     try {
-        Server server(app, dispatcher, scfg);
+        const auto cfg = kvd::config::build_app_config();
+
+        KVStore store;
+        TtlCleaner cleaner(store, cfg);
+        AppContext app{store, cleaner, cfg};
+
+        kvd::transport::Dispatcher dispatcher;
+
+        services::KvServiceImpl kv_service;
+        kvd::gen::RegisterKvService(dispatcher, kv_service);
+
+        services::NumericImpl numeric_service;
+        kvd::gen::RegisterNumericService(dispatcher, numeric_service);
+
+        services::TtlServiceImpl ttl_service;
+        kvd::gen::RegisterTtlService(dispatcher, ttl_service);
+
+        cleaner.start();
+        struct CleanerStopper {
+            TtlCleaner& cleaner;
+            ~CleanerStopper() { cleaner.stop(); }
+        } cleaner_stopper{cleaner};
+
+        Server server(app, dispatcher, cfg);
         server.run();
-    } catch (...) {
-        cleaner.stop();
-        throw;
+    } catch (const kvd::config::ConfigValidationError& ex) {
+        std::cerr << "Config validation failed:\n"
+                  << kvd::config::format_config_issues(ex.issues());
+        return 1;
+    } catch (const std::exception& ex) {
+        std::cerr << "Fatal error: " << ex.what() << '\n';
+        return 1;
     }
 
-    cleaner.stop();
     return 0;
 }

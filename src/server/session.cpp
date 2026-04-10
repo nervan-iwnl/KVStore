@@ -72,7 +72,7 @@ void handle_client_session(
 ) {
     std::string frame_bytes;
 
-    while (read_sized_frame(cfd, app.config.max_frame_size, frame_bytes)) {
+    while (read_sized_frame(cfd, app.config.transport().max_frame_bytes, frame_bytes)) {
         ::kvd::api::v1::RequestFrame req;
         ::kvd::api::v1::ResponseFrame resp;
 

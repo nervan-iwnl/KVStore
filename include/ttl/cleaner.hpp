@@ -1,17 +1,25 @@
 #pragma once
+
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
+#include <mutex>
+#include <string>
 #include <thread>
 #include <vector>
-#include <string> 
-#include <mutex>
-#include "ttl/wheel.hpp"
 
+#include "config/app_config.hpp"
+#include "ttl/wheel.hpp"
 
 class TtlCleaner {
 public:
     TtlCleaner(ITtlTarget& target, HierTtlWheel::Config wheel_cfg);
+
+    explicit TtlCleaner(ITtlTarget& target, const kvd::config::AppConfigSpec& spec)
+        : TtlCleaner(target, spec.ttl) {}
+
+    explicit TtlCleaner(ITtlTarget& target, const kvd::config::AppConfig& app_cfg)
+        : TtlCleaner(target, app_cfg.ttl()) {}
 
     void start();
     void stop();

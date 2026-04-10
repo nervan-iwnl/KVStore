@@ -51,7 +51,6 @@ set(PROTO_FILES
     "${PROTO_ROOT}/kvd/api/v1/ttl.proto"
 )
 
-# Только proto, где есть service и нужен dispatch codegen
 set(SERVICE_PROTO_FILES
     "${PROTO_ROOT}/kvd/api/v1/kv.proto"
     "${PROTO_ROOT}/kvd/api/v1/numeric.proto"
@@ -143,6 +142,8 @@ set(KVD_PLUGIN_SOURCES
 # -----------------------------
 
 add_library(app_core STATIC
+    src/config/builder.cpp
+    src/config/config.cpp
     src/domain/kv_store.cpp
     src/ttl/cleaner.cpp
     src/ttl/wheel.cpp
